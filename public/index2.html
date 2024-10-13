@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Furniture Finder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 80%;
+      max-width: 600px;
+      background-color: white;
+      padding: 20px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    input[type="file"], input[type="text"], select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .results {
+      margin-top: 20px;
+    }
+
+    .results h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .results ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .results ul li {
+      background-color: #f9f9f9;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+    }
+
+    .results ul li input[type="checkbox"] {
+      margin-right: 10px;
+    }
+
+    #progressBarContainer {
+      width: 100%;
+      background-color: #ccc;
+      border-radius: 4px;
+      display: none;
+    }
+
+    #progressBar {
+      width: 0%;
+      height: 20px;
+      background-color: #4CAF50;
+      border-radius: 4px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Find Similar Furniture</h1>
+
+    <!-- Input: furniture name/description -->
+    <label for="furnitureInput">Enter Furniture Name/Description:</label>
+    <input type="text" id="furnitureInput" placeholder="Enter furniture name or description">
+
+    <!-- Input: file upload for image -->
+    <label for="imageUpload">Upload Furniture Image (optional):</label>
+    <input type="file" id="imageUpload" accept="image/*">
+
+    <!-- Dropdown: select furniture brands -->
+    <label for="brandSelect">Select Furniture Brand(s):</label>
+    <select id="brandSelect" multiple>
+      <option value="Poundex">Poundex</option>
+      <option value="Coaster Furniture">Coaster Furniture</option>
+      <option value="Ashley Furniture">Ashley Furniture</option>
+      <option value="Lagoon Furniture">Lagoon Furniture</option>
+    </select>
+
+    <!-- Button to trigger API call -->
+    <button id="searchButton">Search Similar Furniture</button>
+
+    <!-- Progress bar for loading -->
+    <div id="progressBarContainer">
+      <div id="progressBar">0%</div>
+    </div>
+
+    <!-- Results section -->
+    <div class="results" id="resultsContainer">
+      <h2>Results</h2>
+      <ul id="resultsList"></ul>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('searchButton').addEventListener('click', async () => {
+      const furnitureInput = document.getElementById('furnitureInput').value;
+      const brandSelect = Array.from(document.getElementById('brandSelect').selectedOptions).map(option => option.value);
+      const imageUpload = document.getElementById('imageUpload').files[0];
+
+      if (!furnitureInput && !imageUpload) {
+        alert('Please enter furniture name/description or upload an image.');
+        return;
+      }
+
+      // Show the progress bar and start loading
+      const progressBarContainer = document.getElementById('progressBarContainer');
+      const progressBar = document.getElementById('progressBar');
+      progressBarContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+
+      // Simulate progress bar loading
+      let progress = 0;
+      const interval = setInterval(() => {
+        if (progress >= 100) {
+          clearInterval(interval);
+        } else {
+          progress += 10;
+          progressBar.style.width = `${progress}%`;
+          progressBar.textContent = `${progress}%`;
+        }
+      }, 200);
+
+      // Simulate search delay (e.g., calling an API)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Stop the progress bar when loading is done
+      clearInterval(interval);
+      progressBar.style.width = '100%';
+      progressBar.textContent = '100%';
+
+      // Use OpenAI API to generate search queries for finding furniture (mocked here)
+      const openAiResponse = await fetch('https://api.openai.com/v1/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          prompt: generatePrompt(furnitureInput, brandSelect),
+          max_tokens: 150
+        })
+      });
+
+      const openAiResult = await openAiResponse.json();
+      const searchQuery = openAiResult.choices[0].text.trim();
+
+      // Simulate fetching search results based on query
+      const searchResults = await mockSearchResults(searchQuery);
+      displayResults(searchResults);
+
+      // Hide the progress bar after results are displayed
+      progressBarContainer.style.display = 'none';
+    });
+
+    function generatePrompt(furnitureInput, brandSelect) {
+      return `Generate a Google search query to find similar or exact furniture to: "${furnitureInput}" from the following brands: ${brandSelect.join(', ')}.`;
+    }
+
+    function displayResults(results) {
+      const resultsList = document.getElementById('resultsList');
+      resultsList.innerHTML = '';
+      results.forEach(result => {
+        const listItem = document.createElement('li');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = result;
+        listItem.appendChild(checkbox);
+        listItem.appendChild(document.createTextNode(result));
+        resultsList.appendChild(listItem);
+      });
+    }
+
+    // Mock function for demonstration
+    async function mockSearchResults(query) {
+      // Simulate fetching data from a real search
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve([
+            'Furniture 1 from Coaster Furniture',
+            'Furniture 2 from Poundex',
+            'Furniture 3 from Ashley Furniture',
+            'Furniture 4 from Lagoon Furniture'
+          ]);
+        }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
